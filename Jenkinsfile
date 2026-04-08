@@ -50,10 +50,13 @@ pipeline {
 
         //  BUILD STAGE (ADDED)
         stage('Build Angular App') {
-            steps {
-                sh 'npm run build -- --configuration production'
-            }
-        }
+    steps {
+        sh '''
+        export NODE_OPTIONS=--openssl-legacy-provider
+        npm run build -- --configuration production
+        '''
+    }
+}
 
         //  Terraform - Create S3
         stage('Terraform Init') {
