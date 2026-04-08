@@ -1,35 +1,53 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'node18'
+        jdk 'jdk17'
+    }
+
     environment {
-        AWS_DEFAULT_REGION = "us-east-1"
-        S3_BUCKET = "sans-devops-static-site"
+        AWS_DEFAULT_REGION = 'ap-south-1'
+        S3_BUCKET = 'DevopsSampleApp'
+        APP_NAME = 'FrontendSampleApp'
     }
 
     stages {
 
-        stage('Validate') {
+        stage('Checkout') {
             steps {
-                sh 'ls -l src'
+                git 'https://github.com/TejasG30/ForntendSampleApp.git'
             }
         }
 
-        stage('Test - SonarQube') {
+        stage('Validate') {
             steps {
-                script {
-                    def scannerHome = tool 'sonar'
-                    withSonarQubeEnv('sonar') {
-                        sh """
-                          ${scannerHome}/bin/sonar-scanner \
-                          -Dsonar.projectKey=devops-static-site \
-                          -Dsonar.projectName=DevOps-Static-Site \
-                          -Dsonar.sources=src
-                        """
-                    }
+                sh 'ls -l'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm install'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    sh 'sonar-scanner'
                 }
             }
         }
 
+        //  BUILD STAGE (ADDED)
+        stage('Build Angular App') {
+            steps {
+                sh 'npm run build -- --configuration production'
+            }
+        }
+
+        //  Terraform - Create S3
         stage('Terraform Init') {
             steps {
                 sh 'terraform -chdir=terraform/site init'
@@ -38,24 +56,20 @@ pipeline {
 
         stage('Terraform Apply') {
             steps {
-                sh 'terraform -chdir=terraform/site apply -auto-approve'
+                withAWS(credentials: 'aws-creds', region: 'ap-south-1') {
+                    sh 'terraform -chdir=terraform/site apply -auto-approve'
+                }
             }
         }
 
+        //  Deploy Build to S3
         stage('Deploy to S3') {
             steps {
-                sh 'aws s3 sync src/ s3://$S3_BUCKET --delete'
-            }
-        }
-
-        /* 🔥 NEW STAGE – DO NOT MODIFY ANYTHING ABOVE */
-        stage('Invalidate CloudFront Cache') {
-            steps {
-                sh '''
-                  aws cloudfront create-invalidation \
-                  --distribution-id E2WGKZHL0DRIXZ \
-                  --paths "/*"
-                '''
+                withAWS(credentials: 'aws-creds', region: 'ap-south-1') {
+                    sh '''
+                    aws s3 sync dist/$APP_NAME/ s3://$S3_BUCKET --delete
+                    '''
+                }
             }
         }
     }
