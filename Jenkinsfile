@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = 'ap-south-1'
-        S3_BUCKET = 'DevopsSampleApp'
+        S3_BUCKET = 'devopssampleapp'
         APP_NAME = 'FrontendSampleApp'
     }
 
@@ -16,7 +16,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git 'https://github.com/TejasG30/ForntendSampleApp.git'
+                git branch: 'main', url: 'https://github.com/TejasG30/ForntendSampleApp.git'
             }
         }
 
