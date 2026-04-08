@@ -49,10 +49,10 @@ pipeline {
 }
 
         //  BUILD STAGE (ADDED)
-        stage('Build Angular App') {
+       stage('Build Angular App') {
     steps {
         sh '''
-        NODE_OPTIONS=--openssl-legacy-provider npm run build -- --configuration production
+        NODE_OPTIONS=--openssl-legacy-provider npx ng build --configuration production
         '''
     }
 }
