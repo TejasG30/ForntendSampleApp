@@ -1,16 +1,18 @@
 resource "aws_s3_bucket" "site" {
-  bucket = "sans-devops-static-site"
+  bucket = "DevopsSampleApp"   
 }
 
+# Allow public access (for static website)
 resource "aws_s3_bucket_public_access_block" "public" {
   bucket = aws_s3_bucket.site.id
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
 }
 
+# Static website hosting
 resource "aws_s3_bucket_website_configuration" "site" {
   bucket = aws_s3_bucket.site.id
 
@@ -19,31 +21,20 @@ resource "aws_s3_bucket_website_configuration" "site" {
   }
 }
 
-data "aws_iam_policy_document" "s3_policy" {
-  statement {
-    sid    = "AllowCloudFrontRead"
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["cloudfront.amazonaws.com"]
-    }
-
-    actions = ["s3:GetObject"]
-
-    resources = [
-      "${aws_s3_bucket.site.arn}/*"
-    ]
-
-    condition {
-      test     = "StringEquals"
-      variable = "AWS:SourceArn"
-      values   = [aws_cloudfront_distribution.cdn.arn]
-    }
-  }
-}
-
-resource "aws_s3_bucket_policy" "site_policy" {
+# Public read policy (IMPORTANT)
+resource "aws_s3_bucket_policy" "public_read" {
   bucket = aws_s3_bucket.site.id
-  policy = data.aws_iam_policy_document.s3_policy.json
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid = "PublicReadGetObject"
+        Effect = "Allow"
+        Principal = "*"
+        Action = "s3:GetObject"
+        Resource = "${aws_s3_bucket.site.arn}/*"
+      }
+    ]
+  })
 }
