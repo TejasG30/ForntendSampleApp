@@ -33,12 +33,20 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('sonarqube') {
-                    sh 'sonar-scanner'
-                }
+    steps {
+        script {
+            def scannerHome = tool 'sonar-scanner'
+            withSonarQubeEnv('sonarqube') {
+                sh """
+                ${scannerHome}/bin/sonar-scanner \
+                -Dsonar.projectKey=frontend-app \
+                -Dsonar.projectName=Frontend-App \
+                -Dsonar.sources=src
+                """
             }
         }
+    }
+}
 
         //  BUILD STAGE (ADDED)
         stage('Build Angular App') {
